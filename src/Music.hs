@@ -11,7 +11,7 @@ import Control.Monad.Fix (fix)
 import Control.Applicative ((<*>), (<$>))
 import FRP.Elerea.Simple as Elerea
 import System.Random
-import Sound.ALUT hiding (Static, direction)
+-- import Sound.ALUT hiding (Static, direction)
 import System.IO ( hPutStrLn, stderr )
 import Data.List (intersperse)
 
@@ -58,9 +58,9 @@ data SoundState = SoundState (Maybe StatusChange) Bool Bool
 
 data StatusChange = Danger | Safe
 
-data Sounds = Sounds { backgroundTune :: Source
-                     , shriek :: Source
-                     , bite :: Source }
+data Sounds = Sounds { backgroundTune :: ()
+                     , shriek :: ()
+                     , bite :: () }
 
 initialPlayer :: Player
 initialPlayer = Player (0, 0) Nothing
@@ -94,19 +94,19 @@ main = do
     glossState <- initState
     textures <- loadTextures
     withWindow width height "Game-Demo" $ \win -> do
-      withProgNameAndArgs runALUT $ \_ _ -> do
-          sounds <- loadSounds
-          backgroundMusic (backgroundTune sounds)
-          network <- start $ do
-            directionKey <- directionKeyGen
-            hunted win directionKey randomGenerator textures glossState sounds
-          fix $ \loop -> do
-               readInput win directionKeySink
-               join network
-               threadDelay 20000
-               esc <- keyIsPressed win Key'Escape
-               unless esc loop
-          exitSuccess
+    --   withProgNameAndArgs runALUT $ \_ _ -> do
+        sounds <- loadSounds
+      --   backgroundMusic (backgroundTune sounds)
+        network <- start $ do
+          directionKey <- directionKeyGen
+          hunted win directionKey randomGenerator textures glossState sounds
+        fix $ \loop -> do
+              readInput win directionKeySink
+              join network
+              threadDelay 20000
+              esc <- keyIsPressed win Key'Escape
+              unless esc loop
+        exitSuccess
 
 loadTextures :: IO Textures
 loadTextures = do
@@ -134,15 +134,16 @@ loadSounds = do
     musicSource <- loadSound "sounds/oboe-loop.wav"
     shriekSource <- loadSound "sounds/shriek.wav"
     biteSource <- loadSound "sounds/bite.wav"
-    sourceGain biteSource $= 0.5
+    -- sourceGain biteSource $= 0.5
     return $ Sounds musicSource shriekSource biteSource
 
-loadSound :: FilePath -> IO Source
+loadSound :: FilePath -> IO ()
 loadSound path = do
-    buf <- createBuffer (File path)
-    source <- genObjectName
-    buffer source $= Just buf
-    return source
+    -- buf <- createBuffer (File path)
+    -- source <- genObjectName
+    -- buffer source $= Just buf
+    -- return source
+    return ()
 
 loadAnims :: String -> String -> String -> IO WalkingTexture
 loadAnims path1 path2 path3 = WalkingTexture <$> loadBMP path1 <*> loadBMP path2 <*> loadBMP path3
@@ -286,7 +287,9 @@ outputFunction :: Window
                   -> RenderState
                   -> SoundState
                   -> IO ()
-outputFunction window glossState textures sounds renderState soundState =  (renderFrame window glossState textures renderState) >> (playSounds sounds soundState)
+outputFunction window glossState textures sounds renderState soundState = 
+  (renderFrame window glossState textures renderState)
+  --  >> (playSounds sounds soundState)
 
 renderFrame :: Window -> State -> Textures -> RenderState -> IO ()
 renderFrame window glossState textures (RenderState (Player _ playerDir) (Monster (xmon, ymon) status) gameOver viewport) = do
@@ -375,36 +378,36 @@ isPress _                  = False
 -- music: https://www.freesound.org/people/Thirsk/sounds/121035/
 -- shriek: https://www.freesound.org/people/dan2008ds/sounds/175169/
 -- bite: https://www.freesound.org/people/dan2008ds/sounds/175169/
-backgroundMusic :: Source -> IO ()
-backgroundMusic source = do
-        loopingMode source $= Looping
-        play [source]
+-- backgroundMusic :: Source -> IO ()
+-- backgroundMusic source = do
+--         loopingMode source $= Looping
+--         play [source]
 
-paceToPitch :: StatusChange -> ALfloat
-paceToPitch Safe = 1
-paceToPitch Danger = 2
+-- paceToPitch :: StatusChange -> ALfloat
+-- paceToPitch Safe = 1
+-- paceToPitch Danger = 2
 
-playSounds :: Sounds -> SoundState -> IO ()
-playSounds (Sounds musicSource shriekSource biteSource) (SoundState mbPace endOfGame hunting) = do
-  changeBackgroundMusic musicSource mbPace 
-  when endOfGame $ playSound shriekSource
-  if hunting then playContinuousSound biteSource
-             else stop [biteSource]
+-- playSounds :: Sounds -> SoundState -> IO ()
+-- playSounds (Sounds musicSource shriekSource biteSource) (SoundState mbPace endOfGame hunting) = do
+--   changeBackgroundMusic musicSource mbPace 
+--   when endOfGame $ playSound shriekSource
+--   if hunting then playContinuousSound biteSource
+--              else stop [biteSource]
 
-changeBackgroundMusic :: Source -> Maybe StatusChange -> IO ()
-changeBackgroundMusic source (Just pace) = pitch source $= (paceToPitch pace)
-changeBackgroundMusic _      Nothing     = return ()
+-- changeBackgroundMusic :: Source -> Maybe StatusChange -> IO ()
+-- changeBackgroundMusic source (Just pace) = pitch source $= (paceToPitch pace)
+-- changeBackgroundMusic _      Nothing     = return ()
 
-playContinuousSound :: Source -> IO ()
-playContinuousSound source = do
-        state <- get (sourceState source)
-        unless (state == Playing) $ play [source]
+-- playContinuousSound :: Source -> IO ()
+-- playContinuousSound source = do
+--         state <- get (sourceState source)
+--         unless (state == Playing) $ play [source]
 
-playSound :: Source -> IO ()
-playSound source = do
-    play [source]
-    -- Normally nothing should go wrong above, but one never knows...
-    errs <- get alErrors
-    unless (null errs) $ do
-        hPutStrLn stderr (concat (intersperse "," [ d | ALError _ d <- errs ]))
-    return ()
+-- playSound :: Source -> IO ()
+-- playSound source = do
+--     play [source]
+--     -- Normally nothing should go wrong above, but one never knows...
+--     errs <- get alErrors
+--     unless (null errs) $ do
+--         hPutStrLn stderr (concat (intersperse "," [ d | ALError _ d <- errs ]))
+--     return ()

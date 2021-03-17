@@ -17,7 +17,7 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import Graphics.Gloss()
 import Graphics.Gloss.Rendering
 import Testing.GameTypes
-import Testing.Sound
+-- import Testing.Sound
 import Testing.Graphics
 import FRP.Elerea.Simple as Elerea
 import Control.Monad (when)
@@ -106,7 +106,7 @@ hunted :: (Show a, RandomGen p) =>
           -> p
           -> Testing.Graphics.Textures
           -> State
-          -> Sounds
+          -- -> Sounds
           -> StartState
           -> Signal (Int, Bool)
           -> Signal (a, Bool, Bool)
@@ -114,7 +114,7 @@ hunted :: (Show a, RandomGen p) =>
           -> SignalGen (Signal (IO ()))
           
           
-hunted win windowSize directionKey shootKey randomGenerator textures glossState sounds startState snapshotSig recordKey commands = mdo
+hunted win windowSize directionKey shootKey randomGenerator textures glossState startState snapshotSig recordKey commands = mdo
   let mkGame = playGame windowSize directionKey shootKey randomGenerator startState commands (snd <$> recordingData)
   (gameState, gameTrigger) <- switcher $ mkGame <$> gameStatus'
   gameStatus <- transfer (gameStatusSignal startState) gameProgress gameTrigger
@@ -128,7 +128,7 @@ hunted win windowSize directionKey shootKey randomGenerator textures glossState 
   recordingData <- transfer3 ("", False) isItRecording startRecording endRecording ts
   let snapshotData  = (,) <$> (fst <$> snapshotSig) <*> ((||) <$> snapshot <*> startRecording)
 
-  return $ outputFunction win glossState textures sounds <$> gameState <*> snapshotData <*> recordingData <*> directionKey <*> shootKey
+  return $ outputFunction win glossState textures <$> gameState <*> snapshotData <*> recordingData <*> directionKey <*> shootKey
   where gameProgress False s      = s
         gameProgress True  Start  = InGame
         gameProgress True  InGame = Start
@@ -501,16 +501,16 @@ monitorStatusChange _ = Nothing
 outputFunction :: GLFW.Window
                   -> State
                   -> Testing.Graphics.Textures
-                  -> Sounds
+                  -- -> Sounds
                   -> GameState
                   -> (Int, Bool)
                   -> (String, Bool)
                   -> (Bool, Bool, Bool, Bool)
                   -> (Bool, Bool, Bool, Bool)
                   -> IO ()
-outputFunction window glossState textures sounds (GameState renderState soundState) snapshot record directionKey shootKey =
+outputFunction window glossState textures (GameState renderState soundState) snapshot record directionKey shootKey =
   (renderFrame window glossState textures (worldWidth, worldHeight) renderState) >>
-    playSounds sounds soundState >>
+    -- playSounds sounds soundState >>
     recordState snapshot renderState >>
     recordEvents record directionKey shootKey
 

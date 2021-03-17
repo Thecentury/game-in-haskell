@@ -4,3 +4,5 @@ cabal.sandbox.config
 
 # Vim swapfiles
 *.sw?
+.idea
+dist-newstyle
