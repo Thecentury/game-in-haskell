@@ -1,4 +1,3 @@
-import Hunted.Sound
 import Hunted.Backend
 import Hunted.Graphics
 import Hunted.Game
@@ -25,18 +24,15 @@ main = do
     glossState <- initState
     textures <- loadTextures
     withWindow width height windowSizeSink "hunted" $ \win -> do
-      withSound $ \_ _ -> do
-          sounds <- loadSounds
-          backgroundMusic (backgroundTune sounds)
-          network <- start $ do
-            directionKey <- directionKeyGen
-            windowSize <- windowSizeGen
-            shootKey <- shootKeyGen
-            hunted win windowSize directionKey shootKey randomGenerator textures glossState sounds
-          fix $ \loop -> do
-               readInput win directionKeySink shootKeySink
-               join network
-               threadDelay 20000
-               esc <- exitKeyPressed win
-               unless esc loop
-          exitSuccess
+        network <- start $ do
+          directionKey <- directionKeyGen
+          windowSize <- windowSizeGen
+          shootKey <- shootKeyGen
+          hunted win windowSize directionKey shootKey randomGenerator textures glossState
+        fix $ \loop -> do
+              readInput win directionKeySink shootKeySink
+              join network
+              threadDelay 20000
+              esc <- exitKeyPressed win
+              unless esc loop
+        exitSuccess

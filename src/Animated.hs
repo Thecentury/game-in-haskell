@@ -8,7 +8,6 @@ import System.Exit ( exitSuccess )
 import Control.Concurrent (threadDelay)
 import Control.Monad (when, unless, join)
 import Control.Monad.Fix (fix)
-import Control.Applicative ((<*>), (<$>))
 import FRP.Elerea.Simple
 import System.Random
 
@@ -138,7 +137,7 @@ hunted win directionKey randomGenerator textures glossState = mdo
 
 viewPortMove :: Player -> ViewPort -> ViewPort
 viewPortMove (Player (x,y) _) (ViewPort { viewPortTranslate = _, viewPortRotate = rotation, viewPortScale = scaled }) =
-        ViewPort { viewPortTranslate = ((-x), (-y)), viewPortRotate = rotation, viewPortScale = scaled }
+        ViewPort { viewPortTranslate = (-x, -y), viewPortRotate = rotation, viewPortScale = scaled }
 
 readInput :: Window -> ((Bool, Bool, Bool, Bool) -> IO ()) -> IO ()
 readInput window directionKeySink = do
@@ -151,9 +150,9 @@ readInput window directionKeySink = do
 
 movePlayer :: Float -> (Bool, Bool, Bool, Bool) -> Bool -> Player -> Player
 movePlayer _ _ True player = player
-movePlayer increment direction False player@(Player (xpos, ypos) _)
-         | outsideOfLimits (position (move direction player increment)) playerSize = player
-         | otherwise = move direction player increment
+movePlayer increment direction False player
+  | outsideOfLimits (position (move direction player increment)) playerSize = player
+  | otherwise = move direction player increment
 
 outsideOfLimits :: (Float, Float) -> Float -> Bool
 outsideOfLimits (xmon, ymon) size = xmon > worldWidth/2 - size/2 ||
@@ -167,7 +166,7 @@ move (True, _, _, _) (Player (xpos, ypos) _) increment = Player (xpos - incremen
 move (_, True, _, _) (Player (xpos, ypos) (Just (PlayerMovement WalkRight n))) increment = Player (xpos + increment, ypos) (Just $ PlayerMovement WalkRight (circular n))
 move (_, True, _, _) (Player (xpos, ypos) _) increment = Player (xpos + increment, ypos) $ Just $ PlayerMovement WalkRight One
 move (_, _, True, _) (Player (xpos, ypos) (Just (PlayerMovement WalkUp n))) increment = Player (xpos, (ypos + increment)) (Just $ PlayerMovement WalkUp (circular n))
-move (_, _, True, _) (Player (xpos, ypos) _) increment = Player (xpos, (ypos + increment)) $ Just $ PlayerMovement WalkUp One
+move (_, _, True, _) (Player (xpos, ypos) _) increment = Player (xpos, ypos + increment) $ Just $ PlayerMovement WalkUp One
 move (_, _, _, True) (Player (xpos, ypos) (Just (PlayerMovement WalkDown n))) increment = Player (xpos, (ypos - increment)) (Just $ PlayerMovement WalkDown (circular n))
 move (_, _, _, True) (Player (xpos, ypos) _) increment = Player (xpos, (ypos - increment)) $ Just $ PlayerMovement WalkDown One
 

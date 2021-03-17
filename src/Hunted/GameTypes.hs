@@ -56,7 +56,7 @@ data RenderState = RenderState { renderState_player :: Player
                                , renderState_animation :: Maybe Animation
                                , renderState_windowSize :: (Int, Int) }
                  | StartRenderState (Int, Int)
-data SoundState = SoundState { mood :: (Maybe StatusChange)
+data SoundState = SoundState { mood :: Maybe StatusChange
                              , playerScreams :: Bool
                              , hunting :: Bool
                              , monsterDies :: Bool

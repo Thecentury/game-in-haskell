@@ -8,12 +8,9 @@ import System.Exit ( exitSuccess )
 import Control.Concurrent (threadDelay)
 import Control.Monad (when, unless, join)
 import Control.Monad.Fix (fix)
-import Control.Applicative ((<*>), (<$>))
 import FRP.Elerea.Simple as Elerea
 import System.Random
 -- import Sound.ALUT hiding (Static, direction)
-import System.IO ( hPutStrLn, stderr )
-import Data.List (intersperse)
 
 type Pos = Point
 data Player = Player { position :: Pos, movement :: Maybe PlayerMovement }
@@ -54,13 +51,8 @@ data Textures = Textures { backgroundTexture :: Picture
                          , monsterHuntingTexture :: TextureSet }
 
 data RenderState = RenderState Player Monster Bool ViewPort
-data SoundState = SoundState (Maybe StatusChange) Bool Bool
 
 data StatusChange = Danger | Safe
-
-data Sounds = Sounds { backgroundTune :: ()
-                     , shriek :: ()
-                     , bite :: () }
 
 initialPlayer :: Player
 initialPlayer = Player (0, 0) Nothing
@@ -94,19 +86,16 @@ main = do
     glossState <- initState
     textures <- loadTextures
     withWindow width height "Game-Demo" $ \win -> do
-    --   withProgNameAndArgs runALUT $ \_ _ -> do
-        sounds <- loadSounds
-      --   backgroundMusic (backgroundTune sounds)
-        network <- start $ do
-          directionKey <- directionKeyGen
-          hunted win directionKey randomGenerator textures glossState sounds
-        fix $ \loop -> do
-              readInput win directionKeySink
-              join network
-              threadDelay 20000
-              esc <- keyIsPressed win Key'Escape
-              unless esc loop
-        exitSuccess
+      network <- start $ do
+        directionKey <- directionKeyGen
+        hunted win directionKey randomGenerator textures glossState
+      fix $ \loop -> do
+            readInput win directionKeySink
+            join network
+            threadDelay 20000
+            esc <- keyIsPressed win Key'Escape
+            unless esc loop
+      exitSuccess
 
 loadTextures :: IO Textures
 loadTextures = do
@@ -129,22 +118,6 @@ loadTextures = do
                     , monsterWalkingTexture = monsterWalkingSet
                     , monsterHuntingTexture = monsterHuntingSet }
 
-loadSounds :: IO Sounds
-loadSounds = do
-    musicSource <- loadSound "sounds/oboe-loop.wav"
-    shriekSource <- loadSound "sounds/shriek.wav"
-    biteSource <- loadSound "sounds/bite.wav"
-    -- sourceGain biteSource $= 0.5
-    return $ Sounds musicSource shriekSource biteSource
-
-loadSound :: FilePath -> IO ()
-loadSound path = do
-    -- buf <- createBuffer (File path)
-    -- source <- genObjectName
-    -- buffer source $= Just buf
-    -- return source
-    return ()
-
 loadAnims :: String -> String -> String -> IO WalkingTexture
 loadAnims path1 path2 path3 = WalkingTexture <$> loadBMP path1 <*> loadBMP path2 <*> loadBMP path3
 
@@ -154,35 +127,24 @@ hunted :: RandomGen t =>
           -> t
           -> Textures
           -> State
-          -> Sounds
           -> SignalGen (Signal (IO ()))
-hunted win directionKey randomGenerator textures glossState sounds = mdo
+hunted win directionKey randomGenerator textures glossState = mdo
     player <- transfer2 initialPlayer (movePlayer 10) directionKey gameOver'
     randomNumber <- stateful (undefined, randomGenerator) nextRandom
     monster <- transfer3 initialMonster wanderOrHunt player randomNumber gameOver'
-    monster' <- delay initialMonster monster
     gameOver <- memo (playerEaten <$> player <*> monster)
     gameOver' <- delay False gameOver
     viewport <- transfer initialViewport viewPortMove player
-    statusChange <- transfer2 Nothing monitorStatusChange monster monster'
-    endOfGame <- Elerea.till gameOver
 
-    let hunting = stillHunting <$> monster <*> gameOver
-        renderState = RenderState <$> player <*> monster <*> gameOver <*> viewport
-        soundState  = SoundState <$> statusChange <*> endOfGame <*> hunting
+    let renderState = RenderState <$> player <*> monster <*> gameOver <*> viewport
 
-    return $ outputFunction win glossState textures sounds <$> renderState <*> soundState
+    return $ outputFunction win glossState textures <$> renderState
     where playerEaten player monster = distance player monster < (playerSize^2  :: Float)
           nextRandom (_, g) = random g
 
-stillHunting :: Monster -> Bool -> Bool
-stillHunting _                       True  = False
-stillHunting (Monster _ (Hunting _)) False = True
-stillHunting _                       False = False
-
 viewPortMove :: Player -> ViewPort -> ViewPort
-viewPortMove (Player (x,y) _) (ViewPort { viewPortTranslate = _, viewPortRotate = rotation, viewPortScale = scaled }) =
-        ViewPort { viewPortTranslate = ((-x), (-y)), viewPortRotate = rotation, viewPortScale = scaled }
+viewPortMove (Player (x,y) _) ViewPort { viewPortTranslate = _, viewPortRotate = rotation, viewPortScale = scaled } =
+        ViewPort { viewPortTranslate = (-x, -y), viewPortRotate = rotation, viewPortScale = scaled }
 
 readInput :: Window -> ((Bool, Bool, Bool, Bool) -> IO ()) -> IO ()
 readInput window directionKeySink = do
@@ -274,22 +236,13 @@ stepInCurrentDirection WalkDown (xpos, ypos)  speed = (xpos, ypos - speed)
 stepInCurrentDirection WalkLeft (xpos, ypos)  speed = (xpos - speed, ypos)
 stepInCurrentDirection WalkRight (xpos, ypos) speed = (xpos + speed, ypos)
 
-monitorStatusChange :: Monster -> Monster -> Maybe StatusChange -> Maybe StatusChange
-monitorStatusChange (Monster _ (Hunting _)) (Monster _ (Wander _ _)) _ = Just Danger
-monitorStatusChange (Monster _ (Wander _ _)) (Monster _ (Hunting _)) _ = Just Safe
-monitorStatusChange _ _ _ = Nothing
-
 -- output functions
 outputFunction :: Window
                   -> State
                   -> Textures
-                  -> Sounds
                   -> RenderState
-                  -> SoundState
                   -> IO ()
-outputFunction window glossState textures sounds renderState soundState = 
-  (renderFrame window glossState textures renderState)
-  --  >> (playSounds sounds soundState)
+outputFunction window glossState textures renderState = renderFrame window glossState textures renderState
 
 renderFrame :: Window -> State -> Textures -> RenderState -> IO ()
 renderFrame window glossState textures (RenderState (Player _ playerDir) (Monster (xmon, ymon) status) gameOver viewport) = do
@@ -307,7 +260,7 @@ tileSize :: Float
 tileSize = 160
 
 tiledBackground :: Picture -> Picture
-tiledBackground texture = Pictures $ map (\a ->  ((uncurry translate) a) texture) $ translateMatrix worldWidth worldHeight
+tiledBackground texture = Pictures $ map (\a -> uncurry translate a texture) $ translateMatrix worldWidth worldHeight
 
 -- what we want: 640, 480
 -- -320--x--(-160)--x--0--x--160--x--320

@@ -26,7 +26,7 @@ renderFrame :: Window -> State -> IO ()
 renderFrame window glossState = do
      displayPicture (windowWidth, windowHeight) white glossState 1.0 $
        Pictures
-                [ Color violet $ translate (-300) 100 $ polygon [((-10), 10), ((-10), 70), (20, 20), (20, 30)]
+                [ Color violet $ translate (-300) 100 $ polygon [(-10, 10), (-10, 70), (20, 20), (20, 30)]
                 , Color red $ translate (-200) 100 $ line [(-30, -30), (-40, 30), (30, 40), (50, -20)]
                 , Color (makeColor 0 128 255 1) $ translate (-100) 100 $ lineLoop [(-30, -30), (-40, 30), (30, 40), (50, -20)]
                 , Color red $ translate 0 100 $ circle 30

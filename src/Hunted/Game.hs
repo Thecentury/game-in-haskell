@@ -6,7 +6,6 @@ module Hunted.Game (
 ) where
 
 import Hunted.GameTypes
-import Hunted.Sound
 import Hunted.Graphics
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import FRP.Elerea.Simple as Elerea
@@ -79,15 +78,14 @@ hunted :: RandomGen p =>
           -> p
           -> Hunted.Graphics.Textures
           -> State
-          -> Sounds
           -> SignalGen (Signal (IO ())) 
                
-hunted win windowSize directionKey shootKey randomGenerator textures glossState sounds = mdo
+hunted win windowSize directionKey shootKey randomGenerator textures glossState = mdo
   let mkGame = playGame windowSize directionKey shootKey randomGenerator
   (gameState, gameTrigger) <- switcher $ mkGame <$> gameStatus'
   gameStatus <- transfer Start gameProgress gameTrigger
   gameStatus' <- delay Start gameStatus
-  return $ outputFunction win glossState textures sounds <$> gameState
+  return $ outputFunction win glossState textures <$> gameState
   where gameProgress False s      = s
         gameProgress True  Start  = InGame
         gameProgress True  InGame = Start
@@ -437,9 +435,8 @@ monitorStatusChange _ = Nothing
 outputFunction :: GLFW.Window
                   -> State
                   -> Hunted.Graphics.Textures
-                  -> Sounds
                   -> GameState
                   -> IO ()
                   
-outputFunction window glossState textures sounds (GameState renderState soundState) =
-  (renderFrame window glossState textures (worldWidth, worldHeight) renderState) >> (playSounds sounds soundState)
+outputFunction window glossState textures (GameState renderState soundState) =
+  renderFrame window glossState textures (worldWidth, worldHeight) renderState

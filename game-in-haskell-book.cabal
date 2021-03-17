@@ -90,7 +90,6 @@ executable extended
   main-is:             Hunted/Main.hs
   other-modules:       Hunted.GameTypes
                      , Hunted.Game
-                     , Hunted.Sound
                      , Hunted.Graphics
                      , Hunted.Backend
   ghc-options:       -Wall
@@ -140,7 +139,6 @@ executable testing
   other-modules:       Testing.GameTypes
                      , Testing.Internals.Game
                      , Testing.Game
-                    --  , Testing.Sound
                      , Testing.Graphics
                      , Testing.Backend
                      , Testing.CommandLine

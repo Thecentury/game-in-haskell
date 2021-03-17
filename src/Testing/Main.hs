@@ -1,4 +1,3 @@
--- import Testing.Sound
 import Testing.Backend
 import Testing.Graphics
 import Testing.Game
@@ -6,15 +5,13 @@ import Testing.CommandLine
 
 import System.Exit ( exitSuccess )
 import System.Random
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay, forkIO, newEmptyMVar)
 import Control.Monad (unless, join, when)
 import Control.Monad.Fix (fix)
 import FRP.Elerea.Simple as Elerea
 import Testing.GameTypes
 import Options
-import Control.Applicative ((<*>), pure)
-import Control.Concurrent (forkIO, newEmptyMVar)
-import Data.Aeson
+import Data.Aeson ( decode )
 import Data.Maybe (fromMaybe, isJust, fromJust)
 import qualified Data.ByteString.Lazy as B (readFile)
 import qualified Data.ByteString.Lazy.Char8 as BC (lines)
@@ -63,9 +60,6 @@ main = runCommand $ \opts _ -> do
     glossState <- initState
     textures <- loadTextures
     withWindow width height windowSizeSink "Game-Demo" $ \win -> do
-      withSound $ \_ _ -> do
-          sounds <- loadSounds
-          backgroundMusic (backgroundTune sounds)
           network <- start $ do
                                  snapshot <- snapshotGen
                                  record <- recordGen
@@ -80,7 +74,6 @@ main = runCommand $ \opts _ -> do
                                     randomGenerator
                                     textures
                                     glossState
-                                    sounds
                                     startState
                                     snapshot
                                     record
